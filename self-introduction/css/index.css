@@ -1,0 +1,31 @@
+.reveal section img {
+    border: none;
+    box-shadow: none;
+}
+
+.reveal section  img.small {
+    max-width: 30%;
+    max-height: 30%;
+    float: left;
+    margin: 30px;
+}
+
+.reveal section  img.exsmall {
+    max-width: 20%;
+    max-height: 20%;
+    float: left;
+    margin: 30px;
+}
+
+.reveal section  img.mid {
+    min-width: 50%;
+}
+
+.reveal section  img.big {
+    min-width: 80%;
+}
+
+.reveal section .full {
+    min-width: 100%;
+    min-height: 100%;
+}
