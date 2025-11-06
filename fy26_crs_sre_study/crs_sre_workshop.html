@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>保守運用・監視 勉強会（基礎編）インフォグラフィック</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+            background-color: #F7F9FC;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 40vh;
+        }
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 300px;
+                max-height: 50vh;
+            }
+        }
+        .card {
+            background-color: #FFFFFF;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            transition: all 0.3s ease-in-out;
+        }
+        .card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2, h3 {
+            font-weight: 700;
+            color: #073B4C;
+        }
+        h2 {
+            font-size: 1.875rem;
+            line-height: 2.25rem;
+            margin-bottom: 1.5rem;
+        }
+        h3 {
+            font-size: 1.25rem;
+            line-height: 1.75rem;
+            margin-bottom: 1rem;
+            color: #118AB2;
+        }
+        .kpi-value {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #118AB2;
+            line-height: 1;
+        }
+        .kpi-label {
+            font-size: 1.125rem;
+            font-weight: 500;
+            color: #073B4C;
+            margin-top: 0.5rem;
+        }
+        .responsibility-diagram {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        .responsibility-box {
+            border: 2px solid;
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+        .arrow-down {
+            text-align: center;
+            font-size: 2rem;
+            color: #073B4C;
+            line-height: 1;
+        }
+        @media (min-width: 768px) {
+            .responsibility-diagram {
+                grid-template-columns: 1fr 4rem 1fr;
+                align-items: center;
+            }
+            .arrow-down {
+                transform: rotate(-90deg);
+                font-size: 3rem;
+            }
+        }
+    </style>
+</head>
+<body class="text-[#073B4C]">
+
+    <!-- Narrative Plan:
+    1. Header: Title of the study session.
+    2. Section 1 (Goals): Introduce the 3 key takeaways.
+    3. Section 2 (Responsibility): Explain the "Why" by showing SRE vs. App team roles.
+    4. Section 3 (Metrics): Explain the "What" by introducing Golden Signals and CRS's 2 key metrics.
+    5. Section 4 (Problems): Detail the two current problems (readability, noise) with illustrative charts.
+    6. Section 5 (Triage): Explain the "How-To" by showing alert urgency levels and examples.
+    7. Section 7 (Summary): Recap the main points of the session.
+    -->
+    <!-- Visualization Choices (NO SVG, NO MERMAID):
+    1. Goals (Card 2): Goal: Inform. Visualization: Styled HTML Cards (Tailwind). Justification: Clear, simple presentation of text goals.
+    2. Responsibility Diagram (Card 3): Goal: Organize. Visualization: Styled HTML/CSS Diagram (Tailwind). Justification: Visually separates the two roles (SRE vs CRS) in a simple flowchart style. NO SVG/Mermaid.
+    3. Golden Signals (Card 4): Goal: Compare. Visualization: Styled HTML Cards (Tailwind). Justification: Presents the 4 distinct concepts clearly.
+    4. CRS Metrics (Card 5): Goal: Inform. Visualization: Styled HTML "Big Number" Callouts (Tailwind). Justification: Highlights the 2 key metrics CRS focuses on.
+    5. Problem 1 (Dashboard) (Card 6): Goal: Compare (Composition). Visualization: Stacked Bar Chart (Chart.js/Canvas). Justification: Visually demonstrates how async latency skews the total, illustrating the "mixed" problem.
+    6. Problem 2 (Noise) (Card 6): Goal: Change (over time). Visualization: Line Chart (Chart.js/Canvas). Justification: Shows how a %-based threshold creates noise over time compared to an absolute threshold.
+    7. Alert Triage Concept (Card 8): Goal: Compare (Composition). Visualization: Donut Chart (Chart.js/Canvas). Justification: Shows the *proportion* of alerts by urgency, emphasizing that "High" is a minority.
+    8. Alert Examples (Cards 9, 10): Goal: Organize. Visualization: Styled HTML Cards (Tailwind). Justification: Lists the specific alerts under their "High", "Mid", and "Low" urgency categories clearly.
+    9. Summary (Card 11): Goal: Inform. Visualization: Styled HTML Cards (Tailwind). Justification: Clear presentation of the 4 key summary points.
+    -->
+    <!-- Color Palette: Energetic & Playful (#FF6B6B, #FFD166, #06D6A0, #118AB2, #073B4C) -->
+    <!-- CRITICAL CONFIRMATION: NO SVG graphics were used. NO Mermaid JS was used. -->
+
+    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+
+        <header class="text-center mb-12">
+            <h1 class="text-3xl md:text-5xl font-bold mb-2">保守運用・監視 勉強会</h1>
+            <p class="text-xl md:text-2xl font-semibold text-[#118AB2]">（基礎編）</p>
+        </header>
+
+        <main class="space-y-12">
+
+            <section id="goals" class="card">
+                <h2 class="text-center">本日のゴール</h2>
+                <p class="text-center text-lg mb-8">今日は「なぜ・何を」監視するのか、その「共通言語」を作ります。</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="text-center p-6 bg-blue-50 rounded-lg">
+                        <span class="text-5xl mb-4 block">🎯</span>
+                        <h3 class="text-lg font-semibold text-[#073B4C]">Goal 1</h3>
+                        <p class="text-base">CRSの信頼性とは何か、をチームの共通言語にする</p>
+                    </div>
+                    <div class="text-center p-6 bg-green-50 rounded-lg">
+                        <span class="text-5xl mb-4 block">🚦</span>
+                        <h3 class="text-lg font-semibold text-[#073B4C]">Goal 2</h3>
+                        <p class="text-base">主要アラートの緊急度を理解し、判断できるようにする</p>
+                    </div>
+                    <div class="text-center p-6 bg-yellow-50 rounded-lg">
+                        <span class="text-5xl mb-4 block">🤝</span>
+                        <h3 class="text-lg font-semibold text-[#073B4C]">Goal 3</h3>
+                        <p class="text-base">CRS開発GとSREや他チームの責任範囲を明確にする</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="responsibility" class="card">
+                <h2 class="text-center">監視の「なぜ？」：責任分界点</h2>
+                <p class="text-center text-lg mb-8">サービスを安定稼働させ、CRSのお客様に対してのビジネス価値を守ることが私たちの責務です。そのために、SREチームとの責任範囲を明確にします。</p>
+                
+                <div class="responsibility-diagram max-w-4xl mx-auto">
+                    <div class="responsibility-box border-[#118AB2]">
+                        <h3 class="text-[#118AB2]">私たち (CRSチーム)</h3>
+                        <p class="font-semibold text-lg mb-2">アプリが「正しく機能している」ことに責任を持つ</p>
+                        <ul class="list-disc list-inside space-y-1">
+                            <li>ビジネスロジック</li>
+                            <li>データ（整合性、鮮度）</li>
+                            <li>アプリケーションエラー (5xx)</li>
+                            <li>パフォーマンス（スロークエリ）</li>
+                        </ul>
+                    </div>
+                    <div class="arrow-down">↓</div>
+                    <div class="responsibility-box border-[#073B4C]">
+                        <h3 class="text-[#073B4C]">SRE / 他チーム</h3>
+                        <p class="font-semibold text-lg mb-2">インフラ基盤が「稼働している」ことに責任を持つ</p>
+                        <ul class="list-disc list-inside space-y-1">
+                            <li>コンテナ基盤 (AWS / ECS)</li>
+                            <li>データベース（死活）
+                            <li>ネットワーク（疎通）</li>
+                            <li>検索基盤（サービス責務）</li>
+                        </ul>
+                    </div>
+                </div>
+                <p class="text-center mt-6 p-4 bg-gray-100 rounded-lg max-w-2xl mx-auto">例：サーバは稼働していても、アプリが500エラーを返していれば「私たち」の問題です。</p>
+            </section>
+
+            <section id="metrics" class="card">
+                <h2 class="text-center">監視の「何を？」：信頼性指標</h2>
+                <p class="text-center text-lg mb-8">SREではサービスの「正常性」を測るため、代表的な4つの指標（ゴールデンシグナル）を使います。</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10">
+                    <div class="p-4 border-l-4 border-[#FF6B6B] bg-red-50 rounded-r-lg">
+                        <h3 class="text-xl font-semibold text-[#FF6B6B]">レイテンシ (Latency)</h3>
+                        <p>リクエストの応答時間</p>
+                    </div>
+                    <div class="p-4 border-l-4 border-[#FFD166] bg-yellow-50 rounded-r-lg">
+                        <h3 class="text-xl font-semibold text-[#FFD166]">トラフィック (Traffic)</h3>
+                        <p>サービスへの負荷（リクエスト数）</p>
+                    </div>
+                    <div class="p-4 border-l-4 border-[#06D6A0] bg-green-50 rounded-r-lg">
+                        <h3 class="text-xl font-semibold text-[#06D6A0]">エラー (Errors)</h3>
+                        <p>失敗したリクエストの割合</p>
+                    </div>
+                    <div class="p-4 border-l-4 border-[#118AB2] bg-blue-50 rounded-r-lg">
+                        <h3 class="text-xl font-semibold text-[#118AB2]">飽和度 (Saturation)</h3>
+                        <p>リソース使用率（CPU, メモリ）</p>
+                    </div>
+                </div>
+
+                <h3 class="text-center">CRSの信頼性ダッシュボードで確認しているのは主にこの2つ</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-center my-8">
+                    <div>
+                        <div class="kpi-value" style="color: #06D6A0;">エラー</div>
+                        <p class="kpi-label">エラーレート (Errors)</p>
+                    </div>
+                    <div>
+                        <div class="kpi-value" style="color: #FF6B6B;">遅延</div>
+                        <p class="kpi-label">レスポンスタイム (Latency)</p>
+                    </div>
+                </div>
+                <div class="text-center mt-6 p-4 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded-lg max-w-3xl mx-auto">
+                    <h4 class="font-bold">注意</h4>
+                    <p>これらはPdM未合意であり、顧客向けSLO（サービスレベル目標）では**ありません**。<br>あくまで、私たちがサービスを守るための「**暫定的な目安**」です。</p>
+                </div>
+            </section>
+
+            <section id="problems" class="card">
+                <h2 class="text-center">現状の「課題」</h2>
+                <p class="text-center text-lg mb-8">現状のダッシュボードと監視には、主に以下の課題があります。</p>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                    <div>
+                        <h3>課題1: ダッシュボードが見づらい</h3>
+                        <p class="mb-4">同期API（即時性が重要）と非同期API（遅延を許容）の指標が混在しています。これにより、非同期APIの遅延が全体のパフォーマンス悪化のように見えてしまい、状況判断を誤る可能性があります。</p>
+                        <div class="chart-container" style="max-height: 250px;">
+                            <canvas id="problem1Chart"></canvas>
+                        </div>
+                        <p class="text-center text-sm mt-2">（イメージ）非同期API(/api/batch/exec)が混在し、Y軸のスケールが引きずられて他が見づらい</p>
+                    </div>
+                    <div>
+                        <h3>課題2: レイテンシ監視がノイズ化</h3>
+                        <p class="mb-4">悪化を「増加倍率」のみで検知しています。例えば10msのAPIが30ms（3倍）になるだけでアラートが鳴りますが、ユーザー体験には影響ありません。本来の目的である「スロークエリ検知」に沿っておらず、ノイズになっています。</p>
+                        <div class="chart-container" style="max-height: 250px;">
+                            <canvas id="problem2Chart"></canvas>
+                        </div>
+                        <p class="text-center text-sm mt-2">（イメージ）パスAは5倍(50ms)でノイズ検知、パスBは2倍(200ms)だがこちらが要調査</p>
+                    </div>
+                </div>
+
+                <div class="mt-12">
+                    <h3>課題3: 監視自体の課題（ノイズ）</h3>
+                    <p class="mb-4">ダッシュボードとは別に、監視アラート自体にも課題があります。例えば、顧客影響がない「バッチ処理の遅延」など、必ずしも即時対応を必要としないアラートが通知されており、ノイズとなっています。</p>
+                    <div class="p-6 bg-blue-50 border border-blue-200 rounded-lg max-w-2xl mx-auto text-center">
+                        <h4 class="font-bold text-lg text-blue-700 mb-2">例：顧客影響のないバッチ遅延アラート</h4>
+                        <p>対応不要なアラートが通知されると、チームは「本当に対応すべきアラート」への注意が散漫になります。</p>
+                    </div>
+                </div>
+
+                <h3 class="text-center mt-12">なぜ現状のままでは良くないか？</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mt-6">
+                    <div class="p-6 bg-red-50 border border-red-200 rounded-lg">
+                        <h4 class="font-bold text-lg text-red-700 mb-2">1. アラート疲れ（ノイズ化）</h4>
+                        <p>対応不要なアラート（ノイズ）が頻発するとチームが疲弊し、「オオカミ少年」状態になり、本当の障害を見逃す原因になります。</p>
+                    </div>
+                    <div class="p-6 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <h4 class="font-bold text-lg text-yellow-700 mb-2">2. 誤った状況判断</h4>
+                        <p>ダッシュボードが実態と合っていないと、障害発生時の影響範囲や緊急度の判断を誤る可能性があります。</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="triage" class="card">
+                <h2 class="text-center">アラート対応の「どうする？」：緊急度</h2>
+                <p class="text-center text-lg mb-8">アラートが鳴ったら、まずは冷静に「緊急度」を判断します。すべてのアラートが即時対応ではありません。</p>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                    <div>
+                        <h3>アラート緊急度の分類（概念）</h3>
+                        <p class="mb-4">私たちが目指すのは、ノイズを減らし、「鳴ったら必ず対応が必要」な監視体制です。緊急度（高・中・低）のトリアージが重要です。</p>
+                        <div class="chart-container" style="max-height: 300px;">
+                            <canvas id="triageChart"></canvas>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="space-y-4">
+                            <div class="p-4 rounded-lg" style="background-color: #FFEBEC; border-left: 5px solid #FF6B6B;">
+                                <h4 class="font-bold text-lg text-[#FF6B6B]">【高】即時対応</h4>
+                                <p class="font-medium">顧客影響が甚大（サービス停止、主要機能が利用不可）</p>
+                                <ul class="list-disc list-inside mt-2 text-sm">
+                                    <li>外形監視 (Synthetics) エラー</li>
+                                    <li>日中帯の5xx エラーレート急上昇</li>
+                                </ul>
+                            </div>
+                            <div class="p-4 rounded-lg" style="background-color: #FFF8E1; border-left: 5px solid #FFD166;">
+                                <h4 class="font-bold text-lg text-[#FFD166]">【中】営業時間内に調査</h4>
+                                <p class="font-medium">顧客影響の可能性（特定機能不具合、パフォーマンス低下）</p>
+                                <ul class="list-disc list-inside mt-2 text-sm">
+                                    <li>Watchdog アノマリー検知</li>
+                                    <li>WAF（特定ルール）遮断アラート</li>
+                                </ul>
+                            </div>
+                            <div class="p-4 rounded-lg" style="background-color: #E6F7FF; border-left: 5px solid #118AB2;">
+                                <h4 class="font-bold text-lg text-[#118AB2]">【低】日次確認 / 担当者確認</h4>
+                                <p class="font-medium">即時の顧客影響なし（バッチ、CI/CD起因）</p>
+                                <ul class="list-disc list-inside mt-2 text-sm">
+                                    <li>バッチ処理遅延 / 失敗</li>
+                                    <li>ビルド / デプロイ失敗通知</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="summary" class="card">
+                <h2 class="text-center">第1回のまとめ</h2>
+                <p class="text-center text-lg mb-8">「アプリの正しさ」を守るため、「健康指標」を持ち、ノイズを減らして「意味のあるアラート」に対応します。</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="p-6 bg-gray-100 rounded-lg">
+                        <span class="text-3xl mb-2 block">1️⃣</span>
+                        <p>アプリの「**正しく機能していること**」を守るのが私たちの責務です。（責任分界点）</p>
+                    </div>
+                    <div class="p-6 bg-gray-100 rounded-lg">
+                        <span class="text-3xl mb-2 block">2️⃣</span>
+                        <p>「**エラーレート**」と「**レスポンスタイム**」をチームの「健康指標（目安）」として追います。</p>
+                    </div>
+                    <div class="p-6 bg-gray-100 rounded-lg">
+                        <span class="text-3xl mb-2 block">3️⃣</span>
+                        <p>現状の監視には「**ノイズ**」と「**見づらさ**」の課題があり、これらは障害見逃しの原因になります。</p>
+                    </div>
+                    <div class="p-6 bg-gray-100 rounded-lg">
+                        <span class="text-3xl mb-2 block">4️⃣</span>
+                        <p>アラートは「**緊急度**」で判断。ノイズを減らし、本物の障害に備える体制を目指します。</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const chartColors = {
+            red: '#FF6B6B',
+            yellow: '#FFD166',
+            green: '#06D6A0',
+            blue: '#118AB2',
+            darkBlue: '#073B4C',
+            gray: '#CED4DA'
+        };
+
+        const defaultTooltipCallback = {
+            title: function(tooltipItems) {
+                const item = tooltipItems[0];
+                let label = item.chart.data.labels[item.dataIndex];
+                if (Array.isArray(label)) {
+                    return label.join(' ');
+                } else {
+                    return label;
+                }
+            }
+        };
+        
+        function splitLabel(label) {
+            if (label.length <= 16) {
+                return label;
+            }
+            const words = label.split(' ');
+            const lines = [];
+            let currentLine = '';
+            for (const word of words) {
+                if ((currentLine + word).length > 16 && currentLine.length > 0) {
+                    lines.push(currentLine.trim());
+                    currentLine = word + ' ';
+                } else {
+                    currentLine += word + ' ';
+                }
+            }
+            lines.push(currentLine.trim());
+            return lines;
+        }
+
+        const problem1Ctx = document.getElementById('problem1Chart');
+        if (problem1Ctx) {
+            new Chart(problem1Ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['/api/users', '/api/products', '/api/batch/exec', '/api/reports'],
+                    datasets: [
+                        {
+                            label: '同期API',
+                            data: [150, 200, 0, 180],
+                            backgroundColor: chartColors.blue,
+                        },
+                        {
+                            label: '非同期API',
+                            data: [0, 0, 800, 0],
+                            backgroundColor: chartColors.red,
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            stacked: true,
+                            title: { display: true, text: 'APIパス' }
+                        },
+                        y: {
+                            stacked: true,
+                            title: { display: true, text: 'レスポンスタイム (ms)' }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '課題1: 同期・非同期の混在（イメージ）',
+                            color: '#073B4C'
+                        },
+                        tooltip: {
+                            callbacks: defaultTooltipCallback
+                        }
+                    }
+                }
+            });
+        }
+
+        const problem2Ctx = document.getElementById('problem2Chart');
+        if (problem2Ctx) {
+            new Chart(problem2Ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['/api/fast-path (5倍)', '/api/slow-path (2倍)'],
+                    datasets: [
+                        {
+                            label: '現在のレイテンシ (ms)',
+                            data: [50, 200],
+                            backgroundColor: chartColors.red,
+                        },
+                        {
+                            label: '1ヶ月前のレイテンシ (ms)',
+                            data: [10, 100],
+                            backgroundColor: chartColors.blue,
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            title: { display: true, text: 'レイテンシ (ms)' },
+                            beginAtZero: true
+                        },
+                        x: {
+                             title: { display: true, text: 'APIパス（と倍率）' }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '課題2: ノイズの多い倍率監視（パスごと比較）',
+                            color: '#073B4C'
+                        },
+                        tooltip: {
+                            callbacks: defaultTooltipCallback,
+                            mode: 'index',
+                            intersect: false
+                        }
+                    }
+                }
+            });
+        }
+        
+        const triageCtx = document.getElementById('triageChart');
+        if (triageCtx) {
+            new Chart(triageCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['【高】即時対応', '【中】営業時間内に調査', '【低】日次確認'],
+                    datasets: [{
+                        label: 'アラートの割合（概念）',
+                        data: [15, 35, 50],
+                        backgroundColor: [
+                            chartColors.red,
+                            chartColors.yellow,
+                            chartColors.blue
+                        ],
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'アラート緊急度の分類（概念）',
+                            color: '#073B4C'
+                        },
+                        tooltip: {
+                            callbacks: defaultTooltipCallback
+                        }
+                    }
+                }
+            });
+        }
+
+    </script>
+</body>
+</html>
